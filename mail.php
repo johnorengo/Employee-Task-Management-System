@@ -1,51 +1,46 @@
 <?php
 
-//Import PHPMailer classes into the global namespace
-//These must be at the top of your script, not inside a function
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
-//required files
+require 'authentication.php';
+
+if (empty($_SESSION['admin_id']) || empty($_SESSION['security_key'])) {
+    header('Location: index.php');
+    exit;
+}
+if ((int) $_SESSION['user_role'] !== 1 || !empty($_SESSION['temp_password'])) {
+    http_response_code(403);
+    exit;
+}
+if (!isset($_POST['add_task_post'])) {
+    header('Location: task-info.php');
+    exit;
+}
+
+if (!$obj_admin->add_new_task($_POST)) {
+    $_SESSION['Task_msg'] = 'Could not assign task. Check the task details.';
+    header('Location: task-info.php');
+    exit;
+}
+
 require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
-//Create an instance; passing `true` enables exceptions
-if (isset($_POST["add_task_post"])) {
-
-  $mail = new PHPMailer(true);
-
-    //Server settings
-    $mail->isSMTP();                              //Send using SMTP
-    $mail->Host       = 'smtp.gmail.com';       //Set the SMTP server to send through
-    $mail->SMTPAuth   = true;             //Enable SMTP authentication
-    $mail->Username   = 'orengokennedy93@gmail.com';   //SMTP write your email
-    $mail->Password   = 'preyfstsqfcyigcn';      //SMTP password
-    $mail->SMTPSecure = 'ssl';            //Enable implicit SSL encryption
-    $mail->Port       = 465;                                    
-
-    //Recipients
-    $mail->setFrom( $_POST["to"], $_POST["assign_to"]); // Sender Email and name
-    $mail->addAddress('orengokennedy93@gmail.com');
-    //$mail->addAddress('kasesodavis@gmail.com');
-    //$mail->addAddress('ekiburio@cuea.edu');
-    //$mail->addAddress('e7197285@gmail.com'); 
-     //$mail->addAddress('chirchirjames154@gmail.com');     //Add a recipient email  
-    $mail->addReplyTo($_POST["to"], $_POST["assign_to"]); // reply to sender email
-
-    //Content
-    $mail->isHTML(true);               //Set email format to HTML
-    $mail->Subject = $_POST["task_title"];   // email subject headings
-    $mail->Body    = $_POST["task_description"]; //email message
-
-    // Success sent message alert
+try {
+    $mail = new PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = getenv('SMTP_HOST') ?: '127.0.0.1';
+    $mail->Port = (int) (getenv('SMTP_PORT') ?: 1025);
+    $mail->SMTPAutoTLS = false;
+    $mail->setFrom('etms@example.test', 'ETMS');
+    $mail->addAddress($_POST['to']);
+    $mail->Subject = $_POST['task_title'];
+    $mail->Body = $_POST['task_description'];
     $mail->send();
-    echo
-    " 
-    <script> 
-     alert('Task assigned successfully!');
-     document.location.href = 'index.php';
-    </script>
-    ";
+} catch (\PHPMailer\PHPMailer\Exception $error) {
+    $_SESSION['Task_msg'] = 'Task assigned. Email notification could not be delivered.';
 }
-?>
+
+header('Location: task-info.php');
+exit;

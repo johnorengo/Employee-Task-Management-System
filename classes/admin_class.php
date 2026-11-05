@@ -2,22 +2,22 @@
 
 class Admin_Class
 {	
+    public PDO $db;
 
 /* -------------------------set_database_connection_using_PDO---------------------- */
 
 	public function __construct()
 	{ 
-        $host_name='localhost';
-		$user_name='root';
-		$password='';
-		$db_name='etms_db';
-
-		try{
-			$connection=new PDO("mysql:host={$host_name}; dbname={$db_name}", $user_name,  $password);
-			$this->db = $connection; // connection established
-		} catch (PDOException $message ) {
-			echo $message->getMessage();
-		}
+        $host = getenv('DB_HOST') ?: '127.0.0.1';
+        $port = getenv('DB_PORT') ?: '5432';
+        $database = getenv('DB_DATABASE') ?: 'etms_db';
+        $username = getenv('DB_USERNAME') ?: 'etms';
+        $this->db = new PDO(
+            "pgsql:host={$host};port={$port};dbname={$database}",
+            $username,
+            getenv('DB_PASSWORD') ?: '',
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
 	}
 
 /* ---------------------- test_form_input_data ----------------------------------- */
@@ -322,7 +322,7 @@ class Admin_Class
 		$assign_to = $this->test_form_input_data($data['assign_to']);
 
 		try{
-			$add_task = $this->db->prepare("INSERT INTO task_info (t_title, t_description, t_start_time, 	t_end_time, t_user_id) VALUES (:x, :y, :z, :a, :b) ");
+			$add_task = $this->db->prepare("INSERT INTO task_info (t_title, t_description, t_start_time, 	t_end_time, t_user_id) VALUES (:x, :y, NULLIF(:z, '')::timestamp, NULLIF(:a, '')::timestamp, :b) ");
 
 			$add_task->bindparam(':x', $task_title);
 			$add_task->bindparam(':y', $task_description);
@@ -334,9 +334,9 @@ class Admin_Class
 
 			$_SESSION['Task_msg'] = 'Task Add Successfully';
 
-			header('Location: task-info.php');
+			return true;
 		}catch (PDOException $e) {
-			echo $e->getMessage();
+			return false;
 		}
 	}
 
@@ -359,7 +359,7 @@ class Admin_Class
 			}
 
 			try{
-				$update_task = $this->db->prepare("UPDATE task_info SET t_title = :x, t_description = :y, t_start_time = :z, t_end_time = :a, t_user_id = :b, status = :c WHERE task_id = :id ");
+				$update_task = $this->db->prepare("UPDATE task_info SET t_title = :x, t_description = :y, t_start_time = NULLIF(:z, '')::timestamp, t_end_time = NULLIF(:a, '')::timestamp, t_user_id = :b, status = :c WHERE task_id = :id ");
 
 				$update_task->bindparam(':x', $task_title);
 				$update_task->bindparam(':y', $task_description);

@@ -22,28 +22,6 @@ if(isset($_GET['delete_task'])){
   $obj_admin->delete_data_by_this_method($sql,$action_id,$sent_po);
 }
 
-if (isset($_POST['add_task_post'])) {
-    // Add the new task
-    $obj_admin->add_new_task($_POST);
-
-    // Prepare email details
-    $to = $_POST['to'];
-    $subject = $_POST['task_title'];
-    $message = $_POST['task_description'];
-    $headers = "From: Admin orengokennedy93@gmail.com\r\n";
-    $headers .= "Reply-To: orengokennedy93@gmail.com\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-
-    // Send the email
-    if (mail($to, $subject, $message, $headers)) {
-        echo "Task assigned successfully!";
-    } else {
-        echo "Task not assigned. Email could not be sent.";
-    }
-}
-
-
-
 $page_name="Task_Info";
 include("include/sidebar.php");
 // include('ems_header.php');
@@ -96,14 +74,14 @@ include("include/sidebar.php");
                     <label class="control-label text-p-reset">Assign To</label>
                     <div class="">
                       <?php 
-                        $sql = "SELECT user_id, fullname FROM tbl_admin WHERE user_role = 2";
+                        $sql = "SELECT user_id, fullname, email FROM tbl_admin WHERE user_role = 2";
                         $info = $obj_admin->manage_all_info($sql);   
                       ?>
                       <select class="form-control rounded-0" name="assign_to" id="aassign_to" required>
                         <option value="">Select Employee...</option>
 
                         <?php while($row = $info->fetch(PDO::FETCH_ASSOC)){ ?>
-                        <option value="<?php echo $row['user_id']; ?>"><?php echo $row['fullname']; ?></option>
+                        <option data-email="<?php echo htmlspecialchars($row['email'], ENT_QUOTES); ?>" value="<?php echo $row['user_id']; ?>"><?php echo $row['fullname']; ?></option>
                         <?php } ?>
                       </select>
                     </div>
@@ -113,45 +91,10 @@ include("include/sidebar.php");
                     
                     </div>
                     <script>
-                        function fetchEmail() {
-                        var employeeId = document.getElementById('assign_to').value;
-
-                        if (employeeId !== "") {
-                        var xhr = new XMLHttpRequest();
-                        xhr.open('GET', 'getEmail.php?id=' + employeeId, true);
-                        xhr.onreadystatechange = function () {
-                        if (xhr.readyState == 4 && xhr.status == 200) {
-                        document.getElementById('employee_email').value = xhr.responseText;
-                      }
-                      };
-                      xhr.send();
-                      } 
-                      else {
-                      document.getElementById('employee_email').value = "";
-                       }
-                        }
-                    </script>
-                    <?php
-if (isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-
-    $conn = new mysqli('localhost', 'root', '', 'etms_db');
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
-
-    $sql = "SELECT email FROM tbl_admin WHERE id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->bind_result($email);
-    $stmt->fetch();
-    $stmt->close();
-    $conn->close();
-
-    echo $email;
-}
-?>                   
+document.getElementById('aassign_to').addEventListener('change', function () {
+    document.getElementById('employee_email').value = this.selectedOptions[0]?.dataset.email || '';
+});
+</script>
                   </div>
                   <div class="form-group">
                   </div>
